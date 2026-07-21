@@ -1,7 +1,7 @@
 {
   "name": "haier-hon-card",
-  "version": "0.1.0",
-  "description": "Home Assistant Lovelace card showing status, program, phase and time remaining for a Haier hOn washing machine or tumble dryer",
+  "version": "0.2.0",
+  "description": "Home Assistant Lovelace cards for Haier hOn appliances: washing machine, dishwasher, climate (AC/oven/fridge/wine cellar) and air purifier/hood",
   "type": "module",
   "license": "MIT",
   "scripts": {
