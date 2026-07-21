@@ -8,15 +8,17 @@ No dependency on the integration itself - every card just reads whichever
 entities you point it at via YAML config, so they work with any integration
 that exposes similarly-shaped sensors.
 
-One bundle (`haier-hon-card.js`) registers five card types:
+One bundle (`haier-hon-card.js`) registers seven card types:
 
 | Card type (`custom:`) | For | Shape |
 |---|---|---|
-| `hon-washing-machine-card` | Washing machine, tumble dryer, washer-dryer | Status/program/phase/remaining-time cycle |
-| `hon-dishwasher-card` | Dishwasher | Same cycle shape + salt/rinse-aid warnings |
-| `hon-climate-card` | Air conditioner, oven, fridge/freezer, wine cellar | 1-3 temperature zones + mode + toggles |
+| `hon-washing-machine-card` | Washing machine, tumble dryer, washer-dryer | Status/program/phase/remaining-time cycle + mode settings |
+| `hon-dishwasher-card` | Dishwasher | Same cycle shape + salt/rinse-aid warnings + mode settings |
+| `hon-climate-card` | Air conditioner, fridge/freezer, wine cellar | 1-3 temperature zones + mode + toggles |
+| `hon-oven-card` | Oven | Temperature zone + program/remaining time + start/stop |
 | `hon-air-purifier-card` | Air purifier, air scanner | Air quality/filter tiles + mode + toggles |
 | `hon-hood-card` | Extractor hood | Status tiles (fan speed, filter) + toggles |
+| `hon-hob-card` | Induction hob | Per-zone (Z1-Z4) power/temp/time tiles + still-hot/no-pan warnings |
 
 ## Installation
 
@@ -36,7 +38,7 @@ One bundle (`haier-hon-card.js`) registers five card types:
    - URL: `/local/haier-hon-card.js`
    - Resource type: JavaScript Module
 
-All five card types are registered from that one resource - you only add it once.
+All seven card types are registered from that one resource - you only add it once.
 
 ## Usage
 
@@ -63,9 +65,36 @@ pause_entity: switch.washing_machine_pause_washing_machine     # adds a pause/re
 A tumble dryer or washer-dryer uses the exact same config shape, just pointed
 at that appliance's entities.
 
+#### Mode settings (`selects` / `toggles`)
+
+Both `hon-washing-machine-card` and `hon-dishwasher-card` also accept `selects`
+and `toggles`, for the pre-start `select.*`/`switch.*` config entities each
+appliance exposes (program, spin speed, half load, ...). The first `selects`
+entry renders inline; any further ones collapse behind a "N more settings"
+expander. `toggles` chips are always visible.
+
+```yaml
+selects:
+  - entity: select.washing_machine_program        # renders inline
+    name: Program
+  - entity: select.washing_machine_spin_speed      # collapsed until expanded
+    name: Spin speed
+    icon: mdi:numeric
+  - entity: select.washing_machine_temperature
+    name: Temperature
+toggles:
+  - entity: switch.washing_machine_prewash
+    name: Prewash
+  - entity: switch.washing_machine_extra_rinse_1
+    name: Extra rinse
+  - entity: switch.washing_machine_good_night
+    name: Good night
+```
+
 ### `hon-dishwasher-card`
 
-Same fields as the washing-machine card, plus two optional problem indicators:
+Same fields as the washing-machine card (including `selects`/`toggles` above),
+plus two optional problem indicators:
 
 ```yaml
 type: custom:hon-dishwasher-card
@@ -77,6 +106,17 @@ door_entity: binary_sensor.dish_washer_door
 power_entity: switch.dish_washer_dish_washer
 salt_entity: binary_sensor.dish_washer_salt                   # shows "Refill salt" when triggered
 rinse_aid_entity: binary_sensor.dish_washer_rinse_aid          # shows "Refill rinse aid" when triggered
+selects:
+  - entity: select.dish_washer_program
+    name: Program
+toggles:
+  - entity: switch.dish_washer_half_load
+    name: Half load
+    icon: mdi:fraction-one-half
+  - entity: switch.dish_washer_extra_dry
+    name: Extra dry
+  - entity: switch.dish_washer_eco_express
+    name: Eco
 ```
 
 ### `hon-climate-card`
@@ -119,7 +159,30 @@ toggles:
     name: Auto-Set
 ```
 
-**Oven** (1 zone) and **wine cellar** (up to 2 zones) follow the same pattern.
+A **wine cellar** (up to 2 zones) follows the same pattern. Ovens have their own
+card - see below.
+
+### `hon-oven-card`
+
+An oven is half climate appliance, half program cycle, so this card stacks the
+temperature stepper from `hon-climate-card` on top of the program/remaining-time
+rows and a start/stop button. Only `zones` (exactly one, the oven's `climate.*`
+entity) is required.
+
+```yaml
+type: custom:hon-oven-card
+name: Oven
+zones:
+  - climate_entity: climate.oven_oven                  # required
+program_sensor_entity: sensor.oven_program             # running program name
+remaining_time_entity: sensor.oven_remaining_time
+delay_time_entity: sensor.oven_start_time              # only shown while > 0
+power_entity: switch.oven_oven                         # adds a start/stop button
+program_entity: select.oven_program                    # optional program picker
+toggles:
+  - entity: switch.oven_preheat
+    name: Preheat
+```
 
 ### `hon-air-purifier-card`
 
@@ -169,12 +232,55 @@ toggles:
     name: Light
 ```
 
-### Microwave, induction hob, robot vacuum
+### `hon-hob-card`
 
-- **Microwave / induction hob** are cycle-shaped appliances too (program +
-  time), so point `hon-washing-machine-card` or `hon-dishwasher-card` at
-  their `programName` / `remainingTimeMM` entities - both cards already
-  degrade gracefully when a field isn't set.
+An induction hob's entities come in a per-zone shape - `zones` renders each
+cooking zone (Z1-Z4) as its own tile with power, temperature, remaining time
+and hot/no-pan flags, dimmed when the zone isn't drawing power. `hot_entity` /
+`pan_entity` / `error_entity` are hob-wide (the plain "Z" entity set) and
+surface as a warning row only when actually triggered. `tiles` still works for
+anything extra (mode select, child lock) and, on a hob with no `zones`, is
+required on its own.
+
+```yaml
+type: custom:hon-hob-card
+name: Induction Hob
+mode_entity: select.hob_program
+zones:
+  - name: Front left
+    power_entity: sensor.induction_hob_power_z1
+    temperature_entity: sensor.induction_hob_temperature_z1
+    remaining_time_entity: sensor.induction_hob_remaining_time_z1
+    hot_entity: binary_sensor.induction_hob_hot_status_z1
+    pan_entity: binary_sensor.induction_hob_pan_status_z1
+  - name: Front right
+    power_entity: sensor.induction_hob_power_z2
+    temperature_entity: sensor.induction_hob_temperature_z2
+    remaining_time_entity: sensor.induction_hob_remaining_time_z2
+    hot_entity: binary_sensor.induction_hob_hot_status_z2
+    pan_entity: binary_sensor.induction_hob_pan_status_z2
+  - name: Rear left
+    power_entity: sensor.induction_hob_power_z3
+  - name: Rear right
+    power_entity: sensor.induction_hob_power_z4
+tiles:
+  - entity: binary_sensor.induction_hob_hob_lock   # read-only on a hOn hob
+    name: Child lock
+    icon: mdi:lock
+hot_entity: binary_sensor.induction_hob_hot_status       # hob-wide "Surface still hot"
+pan_entity: binary_sensor.induction_hob_pan_status         # hob-wide "No pan detected" when off
+error_entity: sensor.induction_hob_error
+```
+
+A single-zone hob (or one without per-zone entities) can skip `zones` entirely
+and use `tiles` the same way the hood card does.
+
+### Microwave, robot vacuum
+
+- **Microwave** is a cycle-shaped appliance (program + time), so point
+  `hon-washing-machine-card` or `hon-dishwasher-card` at its `programName` /
+  `remainingTimeMM` entities - both cards already degrade gracefully when a
+  field isn't set.
 - **Robot vacuum**: use Home Assistant's built-in vacuum card
   (`type: vacuum-card` in the visual editor / a `vacuum.*` entity) rather
   than a custom one here - it already covers status, battery and commands.
@@ -198,8 +304,8 @@ dev tools).
 src/
   base/                   shared LitElement base classes (one per card "shape")
     cycle-card-base.ts     status/program/phase/remaining-time cycle
-    climate-card-base.ts   1-3 temperature zones + mode + toggles
-    sensor-card-base.ts    status tiles + mode + toggles
+    climate-card-base.ts   1-3 temperature zones + mode + toggles (oven builds on this)
+    sensor-card-base.ts    status tiles + mode + toggles (hood, hob, air purifier)
   cards/                  thin @customElement subclasses of a base
   util/
     controls.ts            shared select/toggle-chip renderers + service calls

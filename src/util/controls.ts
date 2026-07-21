@@ -2,7 +2,7 @@ import { css, html, nothing } from "lit";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import type { HomeAssistant } from "custom-card-helpers";
 
-import type { HonToggleConfig } from "../types";
+import type { HonSelectConfig, HonToggleConfig } from "../types";
 
 /** Calls `<domain>.toggle` for any HA entity (switch, fan, lock, ...). */
 export function toggleEntity(hass: HomeAssistant, entityId: string): void {
@@ -33,6 +33,35 @@ export function renderProgramSelect(
     <div class="row program">
       <ha-icon icon="mdi:tune"></ha-icon>
       <select @change=${(e: Event) => onSelect(entityId, (e.target as HTMLSelectElement).value)}>
+        ${options.map(
+          (option) => html`<option value=${option} ?selected=${option === entityState.state}>${option}</option>`,
+        )}
+      </select>
+    </div>
+  `;
+}
+
+/**
+ * Renders one labeled `select.*` entity as an icon + name + `<select>` row, for cards that
+ * offer several distinct config selects (program, spin speed, temperature, ...) rather than
+ * the single unlabeled mode/program picker `renderProgramSelect` covers.
+ */
+export function renderSelectRow(
+  hass: HomeAssistant,
+  select: HonSelectConfig,
+  onSelect: (entityId: string, option: string) => void,
+): TemplateResult | typeof nothing {
+  const entityState = hass.states[select.entity];
+  if (!entityState) {
+    return nothing;
+  }
+  const options: string[] = entityState.attributes.options ?? [];
+  const label = select.name || entityState.attributes.friendly_name || select.entity;
+  return html`
+    <div class="row program">
+      <ha-icon icon=${select.icon || "mdi:tune"}></ha-icon>
+      <span class="select-label">${label}</span>
+      <select @change=${(e: Event) => onSelect(select.entity, (e.target as HTMLSelectElement).value)}>
         ${options.map(
           (option) => html`<option value=${option} ?selected=${option === entityState.state}>${option}</option>`,
         )}
@@ -89,6 +118,30 @@ export const controlStyles: CSSResultGroup = css`
     border: 1px solid var(--divider-color);
     background: var(--card-background-color);
     color: var(--primary-text-color);
+  }
+  .select-label {
+    min-width: 90px;
+    color: var(--secondary-text-color);
+  }
+  .settings-toggle {
+    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 0;
+    border: none;
+    background: none;
+    color: var(--secondary-text-color);
+    font-size: 0.85em;
+    cursor: pointer;
+  }
+  .settings-toggle ha-icon {
+    --mdc-icon-size: 16px;
+  }
+  .more-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
   .toggles {
     display: flex;

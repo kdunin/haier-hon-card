@@ -4,5 +4,7 @@
 import "./haier-hon-washing-machine-card";
 import "./cards/dishwasher-card";
 import "./cards/climate-card";
+import "./cards/oven-card";
 import "./cards/air-purifier-card";
 import "./cards/hood-card";
+import "./cards/hob-card";

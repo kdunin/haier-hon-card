@@ -5,7 +5,13 @@ import type { HomeAssistant, LovelaceCard } from "custom-card-helpers";
 
 import { DEFAULT_STATUS_META, STATUS_META, UNAVAILABLE_STATES } from "../const";
 import type { HonCycleCardConfig } from "../types";
-import { toggleEntity } from "../util/controls";
+import {
+  controlStyles,
+  renderSelectRow,
+  renderToggleChips,
+  selectOption,
+  toggleEntity,
+} from "../util/controls";
 import { formatMinutes } from "../util/format";
 
 const BASE_TRACKED_KEYS: (keyof HonCycleCardConfig)[] = [
@@ -18,7 +24,9 @@ const BASE_TRACKED_KEYS: (keyof HonCycleCardConfig)[] = [
   "pause_entity",
 ];
 
-export const cycleCardStyles: CSSResultGroup = css`
+export const cycleCardStyles: CSSResultGroup = [
+  controlStyles,
+  css`
   ha-card {
     padding: 16px;
     display: flex;
@@ -99,7 +107,8 @@ export const cycleCardStyles: CSSResultGroup = css`
   .icon-button:hover {
     background: var(--divider-color);
   }
-`;
+`,
+];
 
 /**
  * Shared implementation for "program cycle" appliances: a status/program/phase/
@@ -118,6 +127,9 @@ export abstract class HonCycleCardBase<TConfig extends HonCycleCardConfig = HonC
 
   @state() protected _config!: TConfig;
 
+  /** Whether the "more settings" expander (extra pre-start selects) is open. */
+  @state() private _settingsExpanded = false;
+
   public setConfig(config: TConfig): void {
     if (!config.status_entity) {
       throw new Error('"status_entity" is required (the appliance\'s Machine Status sensor)');
@@ -126,11 +138,12 @@ export abstract class HonCycleCardBase<TConfig extends HonCycleCardConfig = HonC
   }
 
   public getCardSize(): number {
-    return 3;
+    const hasSettings = (this._config?.selects?.length ?? 0) > 0 || (this._config?.toggles?.length ?? 0) > 0;
+    return hasSettings ? 4 : 3;
   }
 
   protected shouldUpdate(changedProps: PropertyValues): boolean {
-    if (changedProps.has("_config")) {
+    if (changedProps.has("_config") || changedProps.has("_settingsExpanded")) {
       return true;
     }
     if (!this._config || !changedProps.has("hass")) {
@@ -150,9 +163,16 @@ export abstract class HonCycleCardBase<TConfig extends HonCycleCardConfig = HonC
 
   private _trackedEntityIds(): string[] {
     const keys = [...(BASE_TRACKED_KEYS as (keyof TConfig)[]), ...this._extraTrackedKeys()];
-    return keys
+    const ids = keys
       .map((key) => this._config[key] as unknown as string | undefined)
       .filter((id): id is string => Boolean(id));
+    for (const select of this._config.selects ?? []) {
+      ids.push(select.entity);
+    }
+    for (const toggle of this._config.toggles ?? []) {
+      ids.push(toggle.entity);
+    }
+    return ids;
   }
 
   protected _entityState(entityId?: string) {
@@ -175,6 +195,50 @@ export abstract class HonCycleCardBase<TConfig extends HonCycleCardConfig = HonC
   /** Extension point: extra rows rendered between the remaining-time row and the start/stop actions. */
   protected _renderExtraRows(): TemplateResult | typeof nothing {
     return nothing;
+  }
+
+  /**
+   * Pre-start mode controls: the first configured select (typically "Program") plus all
+   * toggle chips render inline; any further selects (spin speed, temperature, steam level, ...)
+   * sit behind a "more settings" expander so the card doesn't grow tall by default.
+   */
+  private _renderSettings(): TemplateResult | typeof nothing {
+    const selects = this._config.selects ?? [];
+    const toggles = this._config.toggles ?? [];
+    if (selects.length === 0 && toggles.length === 0) {
+      return nothing;
+    }
+    const [primarySelect, ...moreSelects] = selects;
+    const onSelect = (id: string, option: string) => selectOption(this.hass, id, option);
+
+    return html`
+      ${primarySelect ? renderSelectRow(this.hass, primarySelect, onSelect) : nothing}
+      ${renderToggleChips(this.hass, toggles, (id) => toggleEntity(this.hass, id))}
+      ${moreSelects.length > 0
+        ? html`
+            <button
+              class="settings-toggle"
+              @click=${() => {
+                this._settingsExpanded = !this._settingsExpanded;
+              }}
+            >
+              <ha-icon icon=${this._settingsExpanded ? "mdi:chevron-up" : "mdi:chevron-down"}></ha-icon>
+              <span
+                >${this._settingsExpanded
+                  ? "Fewer settings"
+                  : `${moreSelects.length} more setting${moreSelects.length > 1 ? "s" : ""}`}</span
+              >
+            </button>
+          `
+        : nothing}
+      ${this._settingsExpanded
+        ? html`
+            <div class="more-settings">
+              ${moreSelects.map((select) => renderSelectRow(this.hass, select, onSelect))}
+            </div>
+          `
+        : nothing}
+    `;
   }
 
   protected render(): TemplateResult {
@@ -243,6 +307,7 @@ export abstract class HonCycleCardBase<TConfig extends HonCycleCardConfig = HonC
             `
           : nothing}
         ${this._renderExtraRows()}
+        ${this._renderSettings()}
         ${powerState || pauseState
           ? html`
               <div class="actions">

@@ -1,7 +1,7 @@
 {
   "name": "haier-hon-card",
-  "version": "0.2.0",
-  "description": "Home Assistant Lovelace cards for Haier hOn appliances: washing machine, dishwasher, climate (AC/oven/fridge/wine cellar) and air purifier/hood",
+  "version": "0.4.0",
+  "description": "Home Assistant Lovelace cards for Haier hOn appliances: washing machine, dishwasher, climate (AC/fridge/wine cellar), oven, hob, air purifier and hood",
   "type": "module",
   "license": "MIT",
   "scripts": {

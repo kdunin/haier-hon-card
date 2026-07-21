@@ -100,6 +100,11 @@ export abstract class HonSensorCardBase<TConfig extends HonSensorCardConfig = Ho
     return this._trackedEntityIds().some((id) => oldHass.states[id] !== this.hass.states[id]);
   }
 
+  /** Entity ids (beyond the shared sensor fields) this card should also watch for changes. */
+  protected _extraTrackedIds(): string[] {
+    return [];
+  }
+
   private _trackedEntityIds(): string[] {
     const ids = this._config.tiles.map((tile) => tile.entity);
     if (this._config.status_entity) {
@@ -111,6 +116,7 @@ export abstract class HonSensorCardBase<TConfig extends HonSensorCardConfig = Ho
     for (const toggle of this._config.toggles ?? []) {
       ids.push(toggle.entity);
     }
+    ids.push(...this._extraTrackedIds());
     return ids;
   }
 
@@ -125,6 +131,11 @@ export abstract class HonSensorCardBase<TConfig extends HonSensorCardConfig = Ho
   /** Header icon; override per appliance (e.g. mdi:air-purifier). */
   protected _defaultIcon(): string {
     return "mdi:information-outline";
+  }
+
+  /** Extension point: extra rows rendered between the tiles and the mode select. */
+  protected _renderExtraRows(): TemplateResult | typeof nothing {
+    return nothing;
   }
 
   private _renderTile(tile: HonSensorTileConfig): TemplateResult | typeof nothing {
@@ -164,6 +175,7 @@ export abstract class HonSensorCardBase<TConfig extends HonSensorCardConfig = Ho
           <div class="name">${name}</div>
         </div>
         <div class="tiles">${this._config.tiles.map((tile) => this._renderTile(tile))}</div>
+        ${this._renderExtraRows()}
         ${renderProgramSelect(this.hass, this._config.mode_entity, (id, option) =>
           selectOption(this.hass, id, option),
         )}

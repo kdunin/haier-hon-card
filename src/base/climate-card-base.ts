@@ -115,6 +115,11 @@ export abstract class HonClimateCardBase<TConfig extends HonClimateCardConfig = 
     return this._trackedEntityIds().some((id) => oldHass.states[id] !== this.hass.states[id]);
   }
 
+  /** Entity ids (beyond the shared climate fields) this card should also watch for changes. */
+  protected _extraTrackedIds(): string[] {
+    return [];
+  }
+
   private _trackedEntityIds(): string[] {
     const ids = this._config.zones.map((zone) => zone.climate_entity);
     if (this._config.program_entity) {
@@ -126,6 +131,7 @@ export abstract class HonClimateCardBase<TConfig extends HonClimateCardConfig = 
     for (const toggle of this._config.toggles ?? []) {
       ids.push(toggle.entity);
     }
+    ids.push(...this._extraTrackedIds());
     return ids;
   }
 
@@ -135,6 +141,11 @@ export abstract class HonClimateCardBase<TConfig extends HonClimateCardConfig = 
 
   protected _defaultName(): string {
     return "Climate";
+  }
+
+  /** Extension point: extra rows rendered between the zones and the program select. */
+  protected _renderExtraRows(): TemplateResult | typeof nothing {
+    return nothing;
   }
 
   private _step(zone: HonClimateZoneConfig, delta: number): void {
@@ -199,6 +210,7 @@ export abstract class HonClimateCardBase<TConfig extends HonClimateCardConfig = 
       <ha-card>
         <div class="header"><div class="name">${name}</div></div>
         <div class="zones">${this._config.zones.map((zone) => this._renderZone(zone))}</div>
+        ${this._renderExtraRows()}
         ${renderProgramSelect(this.hass, this._config.program_entity, (id, option) =>
           selectOption(this.hass, id, option),
         )}
