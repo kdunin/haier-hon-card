@@ -4,7 +4,14 @@ import { property, state } from "lit/decorators.js";
 import type { HomeAssistant, LovelaceCard } from "custom-card-helpers";
 
 import type { HonClimateCardConfig, HonClimateZoneConfig } from "../types";
-import { controlStyles, renderProgramSelect, renderToggleChips, selectOption, toggleEntity } from "../util/controls";
+import {
+  controlStyles,
+  fireMoreInfo,
+  renderProgramSelect,
+  renderToggleChips,
+  selectOption,
+  toggleEntity,
+} from "../util/controls";
 
 const TEMP_STEP = 0.5;
 
@@ -179,7 +186,9 @@ export abstract class HonClimateCardBase<TConfig extends HonClimateCardConfig = 
 
     return html`
       <div class="zone">
-        <div class="zone-label">${label}</div>
+        <div class="zone-label clickable" title=${label} @click=${() => fireMoreInfo(this, zone.climate_entity)}>
+          ${label}
+        </div>
         <span class="current">${current != null ? `${current}${unit}` : "–"}</span>
         ${!off && target != null
           ? html`
@@ -206,9 +215,17 @@ export abstract class HonClimateCardBase<TConfig extends HonClimateCardConfig = 
     const statusState = this._entityState(this._config.status_entity);
     const name = this._config.name || statusState?.attributes.friendly_name || this._defaultName();
 
+    const headerEntity = this._config.status_entity;
+
     return html`
       <ha-card>
-        <div class="header"><div class="name">${name}</div></div>
+        <div
+          class="header ${headerEntity ? "clickable" : ""}"
+          title=${name}
+          @click=${() => fireMoreInfo(this, headerEntity)}
+        >
+          <div class="name">${name}</div>
+        </div>
         <div class="zones">${this._config.zones.map((zone) => this._renderZone(zone))}</div>
         ${this._renderExtraRows()}
         ${renderProgramSelect(this.hass, this._config.program_entity, (id, option) =>

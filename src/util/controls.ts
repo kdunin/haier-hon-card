@@ -10,6 +10,24 @@ export function toggleEntity(hass: HomeAssistant, entityId: string): void {
   void hass.callService(domain, "toggle", { entity_id: entityId });
 }
 
+/**
+ * Opens Home Assistant's built-in "more info" dialog for an entity, the same
+ * popup you get from clicking an entity row anywhere else in the dashboard.
+ * No-ops when `entityId` is unset so callers can wire it up unconditionally.
+ */
+export function fireMoreInfo(node: HTMLElement, entityId: string | undefined): void {
+  if (!entityId) {
+    return;
+  }
+  node.dispatchEvent(
+    new CustomEvent("hass-more-info", {
+      bubbles: true,
+      composed: true,
+      detail: { entityId },
+    }),
+  );
+}
+
 /** Calls `select.select_option`. */
 export function selectOption(hass: HomeAssistant, entityId: string, option: string): void {
   void hass.callService("select", "select_option", { entity_id: entityId, option });
@@ -102,6 +120,9 @@ export function renderToggleChips(
 
 /** Shared styles for `renderProgramSelect` and `renderToggleChips` output. */
 export const controlStyles: CSSResultGroup = css`
+  .clickable {
+    cursor: pointer;
+  }
   .row.program {
     display: flex;
     align-items: center;

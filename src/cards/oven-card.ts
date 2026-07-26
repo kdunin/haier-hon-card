@@ -4,7 +4,7 @@ import { customElement } from "lit/decorators.js";
 
 import { HonClimateCardBase, climateCardStyles } from "../base/climate-card-base";
 import type { HonOvenCardConfig } from "../types";
-import { toggleEntity } from "../util/controls";
+import { fireMoreInfo, toggleEntity } from "../util/controls";
 import { formatMinutes } from "../util/format";
 
 /** The climate base has no `.actions`/`.icon-button` rules - those live in cycleCardStyles. */
@@ -86,10 +86,16 @@ export class HonOvenCard extends HonClimateCardBase<HonOvenCardConfig> {
     const running = powerState?.state === "on";
 
     return html`
-      ${programState ? html`<div class="row"><span class="program-name">${programState.state}</span></div>` : nothing}
+      ${programState
+        ? html`
+            <div class="row clickable" @click=${() => fireMoreInfo(this, this._config.program_sensor_entity)}>
+              <span class="program-name">${programState.state}</span>
+            </div>
+          `
+        : nothing}
       ${remainingState
         ? html`
-            <div class="row">
+            <div class="row clickable" @click=${() => fireMoreInfo(this, this._config.remaining_time_entity)}>
               <ha-icon icon="mdi:timer-outline"></ha-icon>
               <span>${formatMinutes(remainingState.state)}</span>
             </div>
@@ -97,7 +103,7 @@ export class HonOvenCard extends HonClimateCardBase<HonOvenCardConfig> {
         : nothing}
       ${showDelay
         ? html`
-            <div class="row">
+            <div class="row clickable" @click=${() => fireMoreInfo(this, this._config.delay_time_entity)}>
               <ha-icon icon="mdi:clock-start"></ha-icon>
               <span>Starts in ${formatMinutes(delayMinutes)}</span>
             </div>

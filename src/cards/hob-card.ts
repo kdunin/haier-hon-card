@@ -4,6 +4,7 @@ import { customElement } from "lit/decorators.js";
 
 import { HonSensorCardBase, sensorCardStyles } from "../base/sensor-card-base";
 import type { HonHobCardConfig, HonHobZoneConfig } from "../types";
+import { fireMoreInfo } from "../util/controls";
 import { formatMinutes } from "../util/format";
 
 /** Error sensor values that mean "nothing wrong", so no error row is rendered. */
@@ -151,9 +152,11 @@ export class HonHobCard extends HonSensorCardBase<HonHobCardConfig> {
     const power = powerState?.state ?? "";
     const idle = OFF_POWER_STATES.includes(power.toLowerCase());
     const label = zone.name || `Zone ${index + 1}`;
+    const zoneEntity = zone.power_entity ?? zone.program_entity ?? zone.temperature_entity ?? zone.remaining_time_entity;
 
     return html`
-      <div class="zone ${idle ? "idle" : ""}">
+      <div class="zone ${idle ? "idle" : ""} ${zoneEntity ? "clickable" : ""}" @click=${() =>
+        fireMoreInfo(this, zoneEntity)}>
         <div class="zone-label">
           <span>${label}</span>
           <span class="zone-flags">
@@ -206,13 +209,25 @@ export class HonHobCard extends HonSensorCardBase<HonHobCardConfig> {
         ? html`
             <div class="warnings">
               ${stillHot
-                ? html`<span class="warning"><ha-icon icon="mdi:heat-wave"></ha-icon> Surface still hot</span>`
+                ? html`
+                    <span class="warning clickable" @click=${() => fireMoreInfo(this, this._config.hot_entity)}
+                      ><ha-icon icon="mdi:heat-wave"></ha-icon> Surface still hot</span
+                    >
+                  `
                 : nothing}
               ${noPan
-                ? html`<span class="warning"><ha-icon icon="mdi:pot-mix-outline"></ha-icon> No pan detected</span>`
+                ? html`
+                    <span class="warning clickable" @click=${() => fireMoreInfo(this, this._config.pan_entity)}
+                      ><ha-icon icon="mdi:pot-mix-outline"></ha-icon> No pan detected</span
+                    >
+                  `
                 : nothing}
               ${error
-                ? html`<span class="warning error"><ha-icon icon="mdi:alert-circle-outline"></ha-icon> ${error}</span>`
+                ? html`
+                    <span class="warning error clickable" @click=${() => fireMoreInfo(this, this._config.error_entity)}
+                      ><ha-icon icon="mdi:alert-circle-outline"></ha-icon> ${error}</span
+                    >
+                  `
                 : nothing}
             </div>
           `

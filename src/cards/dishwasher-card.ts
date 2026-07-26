@@ -4,6 +4,7 @@ import { customElement } from "lit/decorators.js";
 
 import { HonCycleCardBase, cycleCardStyles } from "../base/cycle-card-base";
 import type { HonDishwasherCardConfig } from "../types";
+import { fireMoreInfo } from "../util/controls";
 
 const dishwasherStyles: CSSResultGroup = [
   cycleCardStyles,
@@ -52,10 +53,18 @@ export class HonDishwasherCard extends HonCycleCardBase<HonDishwasherCardConfig>
     return html`
       <div class="row problems">
         ${lowSalt
-          ? html`<span class="problem"><ha-icon icon="mdi:shaker-outline"></ha-icon> Refill salt</span>`
+          ? html`
+              <span class="problem clickable" @click=${() => fireMoreInfo(this, this._config.salt_entity)}
+                ><ha-icon icon="mdi:shaker-outline"></ha-icon> Refill salt</span
+              >
+            `
           : nothing}
         ${lowRinseAid
-          ? html`<span class="problem"><ha-icon icon="mdi:spray-bottle"></ha-icon> Refill rinse aid</span>`
+          ? html`
+              <span class="problem clickable" @click=${() => fireMoreInfo(this, this._config.rinse_aid_entity)}
+                ><ha-icon icon="mdi:spray-bottle"></ha-icon> Refill rinse aid</span
+              >
+            `
           : nothing}
       </div>
     `;

@@ -7,6 +7,7 @@ import { DEFAULT_STATUS_META, STATUS_META, UNAVAILABLE_STATES } from "../const";
 import type { HonCycleCardConfig } from "../types";
 import {
   controlStyles,
+  fireMoreInfo,
   renderSelectRow,
   renderToggleChips,
   selectOption,
@@ -273,7 +274,11 @@ export abstract class HonCycleCardBase<TConfig extends HonCycleCardConfig = HonC
 
     return html`
       <ha-card>
-        <div class="header">
+        <div
+          class="header clickable"
+          title=${name}
+          @click=${() => fireMoreInfo(this, this._config.status_entity)}
+        >
           <ha-icon .icon=${meta.icon} style="color: ${meta.color}"></ha-icon>
           <div class="title">
             <div class="name">${name}</div>
@@ -282,9 +287,13 @@ export abstract class HonCycleCardBase<TConfig extends HonCycleCardConfig = HonC
           ${doorState
             ? html`
                 <ha-icon
-                  class="door ${doorOpen ? "open" : ""}"
+                  class="door clickable ${doorOpen ? "open" : ""}"
                   .icon=${doorOpen ? "mdi:door-open" : "mdi:door-closed-lock"}
                   title=${doorOpen ? "Door open" : "Door closed"}
+                  @click=${(e: Event) => {
+                    e.stopPropagation();
+                    fireMoreInfo(this, this._config.door_entity);
+                  }}
                 ></ha-icon>
               `
             : nothing}
@@ -293,14 +302,28 @@ export abstract class HonCycleCardBase<TConfig extends HonCycleCardConfig = HonC
         ${programState || phaseState
           ? html`
               <div class="row program">
-                ${programState ? html`<span class="program-name">${programState.state}</span>` : nothing}
-                ${phaseState ? html`<span class="phase">${phaseState.state}</span>` : nothing}
+                ${programState
+                  ? html`
+                      <span
+                        class="program-name clickable"
+                        @click=${() => fireMoreInfo(this, this._config.program_entity)}
+                        >${programState.state}</span
+                      >
+                    `
+                  : nothing}
+                ${phaseState
+                  ? html`
+                      <span class="phase clickable" @click=${() => fireMoreInfo(this, this._config.phase_entity)}
+                        >${phaseState.state}</span
+                      >
+                    `
+                  : nothing}
               </div>
             `
           : nothing}
         ${remainingState
           ? html`
-              <div class="row remaining">
+              <div class="row remaining clickable" @click=${() => fireMoreInfo(this, this._config.remaining_time_entity)}>
                 <ha-icon icon="mdi:timer-outline"></ha-icon>
                 <span>${formatMinutes(remainingState.state)}</span>
               </div>

@@ -4,7 +4,14 @@ import { property, state } from "lit/decorators.js";
 import type { HomeAssistant, LovelaceCard } from "custom-card-helpers";
 
 import type { HonSensorCardConfig, HonSensorTileConfig } from "../types";
-import { controlStyles, renderProgramSelect, renderToggleChips, selectOption, toggleEntity } from "../util/controls";
+import {
+  controlStyles,
+  fireMoreInfo,
+  renderProgramSelect,
+  renderToggleChips,
+  selectOption,
+  toggleEntity,
+} from "../util/controls";
 
 export const sensorCardStyles: CSSResultGroup = [
   controlStyles,
@@ -146,7 +153,7 @@ export abstract class HonSensorCardBase<TConfig extends HonSensorCardConfig = Ho
     const label = tile.name || tileState.attributes.friendly_name || tile.entity;
     const unit = tile.unit ?? tileState.attributes.unit_of_measurement ?? "";
     return html`
-      <div class="tile">
+      <div class="tile clickable" title=${label} @click=${() => fireMoreInfo(this, tile.entity)}>
         <ha-icon icon=${tile.icon || "mdi:circle-medium"}></ha-icon>
         <div class="tile-value">${tileState.state}${unit ? html`<span class="unit">${unit}</span>` : nothing}</div>
         <div class="tile-label">${label}</div>
@@ -168,9 +175,15 @@ export abstract class HonSensorCardBase<TConfig extends HonSensorCardConfig = Ho
         : "var(--disabled-text-color)"
       : "var(--primary-text-color)";
 
+    const headerEntity = this._config.status_entity ?? this._config.mode_entity;
+
     return html`
       <ha-card>
-        <div class="header">
+        <div
+          class="header ${headerEntity ? "clickable" : ""}"
+          title=${name}
+          @click=${() => fireMoreInfo(this, headerEntity)}
+        >
           <ha-icon .icon=${this._defaultIcon()} style="color: ${headerColor}"></ha-icon>
           <div class="name">${name}</div>
         </div>
