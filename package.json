@@ -8,7 +8,8 @@
     "build": "vite build",
     "dev": "vite build --watch",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "prepare": "lefthook install"
   },
   "dependencies": {
     "custom-card-helpers": "^1.9.0",
@@ -18,6 +19,7 @@
     "@typescript-eslint/eslint-plugin": "^7.7.0",
     "@typescript-eslint/parser": "^7.7.0",
     "eslint": "^8.57.0",
+    "lefthook": "^2.2.2",
     "typescript": "^5.4.5",
     "vite": "^5.2.8"
   }
